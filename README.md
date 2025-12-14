@@ -1,7 +1,8 @@
 # Node.js TypeScript Backend
 
 Professional Node.js + TypeScript backend with REST APIs, Socket.IO type-action system, MongoDB, Redis, JWT authentication, and role-based permissions.
-
+ 
+ mongod --dbpath ~/Documents/mongodb/data/db
 ## Features
 
 ✅ **TypeScript** - Full type safety
@@ -433,3 +434,5 @@ See `.env.example` for all available configuration options.
 ## License
 
 MIT
+
+
