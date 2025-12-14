@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Documentation - Custom Swagger</title>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #fafafa;
+      color: #333;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .token-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      border-left: 4px solid #667eea;
+    }
+
+    .token-section h2 {
+      margin-bottom: 15px;
+      color: #667eea;
+    }
+
+    .token-input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .token-input-group input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .token-input-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .token-status {
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+
+    .token-status.active {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .token-status.inactive {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .tab-button {
+      padding: 12px 24px;
+      border: none;
+      background: #f5f5f5;
+      color: #666;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .tab-button.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .tab-button:hover:not(.active) {
+      background: #e0e0e0;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .accordion-item {
+      background: white;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .accordion-header {
+      padding: 20px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.3s;
+      border-left: 4px solid transparent;
+    }
+
+    .accordion-header:hover {
+      background: #f9f9f9;
+    }
+
+    .accordion-header.post {
+      border-left-color: #49cc90;
+    }
+
+    .accordion-header.get {
+      border-left-color: #61affe;
+    }
+
+    .accordion-header .method {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 12px;
+      margin-right: 15px;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    .accordion-header .method.post {
+      background: #49cc90;
+      color: white;
+    }
+
+    .accordion-header .method.get {
+      background: #61affe;
+      color: white;
+    }
+
+    .accordion-header .path {
+      flex: 1;
+      font-weight: 500;
+      font-size: 16px;
+    }
+
+    .accordion-header .arrow {
+      font-size: 20px;
+      transition: transform 0.3s;
+    }
+
+    .accordion-header.active .arrow {
+      transform: rotate(180deg);
+    }
+
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .accordion-content.active {
+      max-height: 2000px;
+    }
+
+    .accordion-body {
+      padding: 20px;
+    }
+
+    .description {
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: monospace;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button.execute-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+
+    button.execute-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    button.execute-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .response-section {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 4px solid #667eea;
+    }
+
+    .response-section h4 {
+      margin-bottom: 10px;
+      color: #667eea;
+    }
+
+    .response-section pre {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .socket-status {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+
+    .socket-status.connected {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .socket-status.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 1.8rem;
+      }
+      
+      .tabs {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>API Documentation</h1>
+    <p>Node.js + TypeScript Backend with REST & Socket.IO APIs</p>
+  </div>
+
+  <div class="container">
+    <!-- Token Section -->
+    <div class="token-section">
+      <h2>Authentication Token</h2>
+      <p style="margin-bottom: 15px; color: #666;">Enter your access token here. Get it by logging in or registering below.</p>
+      <div class="token-input-group">
+        <input type="text" id="globalToken" placeholder="Paste your JWT access token here" />
+        <button class="execute-btn" onclick="saveToken()">Save Token</button>
+        <button class="execute-btn" onclick="clearToken()">Clear</button>
+      </div>
+      <div id="tokenStatus" class="token-status inactive">No token set</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-button active" onclick="switchTab('rest')">REST APIs</button>
+      <button class="tab-button" onclick="switchTab('socket')">Socket.IO APIs</button>
+    </div>
+
+    <!-- REST APIs Tab -->
+    <div id="rest-tab" class="tab-content active">
+      <!-- Register API -->
+      <div class="accordion-item">
+        <div class="accordion-header post" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method post">POST</span>
+            <span class="path">/api/auth/register</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Register a new user account. Returns access token, refresh token, and user data.</p>
+            
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" id="register-name" placeholder="John Doe" />
+            </div>
+            
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="register-email" placeholder="john@example.com" />
+            </div>
+            
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="register-password" placeholder="••••••••" />
+            </div>
+            
+            <div class="form-group">
+              <label>Role (optional)</label>
+              <input type="text" id="register-role" placeholder="user" value="user" />
+            </div>
+            
+            <button class="execute-btn" onclick="executeRegister()">Execute</button>
+            
+            <div id="register-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Login API -->
+      <div class="accordion-item">
+        <div class="accordion-header post" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method post">POST</span>
+            <span class="path">/api/auth/login</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Login with email and password. Returns access token and refresh token.</p>
+            
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="login-email" placeholder="john@example.com" />
+            </div>
+            
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="login-password" placeholder="••••••••" />
+            </div>
+            
+            <button class="execute-btn" onclick="executeLogin()">Execute</button>
+            
+            <div id="login-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Get Guest Token API -->
+      <div class="accordion-item">
+        <div class="accordion-header get" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method get">GET</span>
+            <span class="path">/api/auth/guest-token</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Get a guest token for limited access (1 hour validity).</p>
+            
+            <button class="execute-btn" onclick="executeGuestToken()">Execute</button>
+            
+            <div id="guest-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Public Info API -->
+      <div class="accordion-item">
+        <div class="accordion-header get" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method get">GET</span>
+            <span class="path">/api/public/info</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Public endpoint, no authentication required.</p>
+            
+            <button class="execute-btn" onclick="executePublicInfo()">Execute</button>
+            
+            <div id="public-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Private Data API -->
+      <div class="accordion-item">
+        <div class="accordion-header get" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method get">GET</span>
+            <span class="path">/api/private/data</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Private endpoint, requires authentication token.</p>
+            
+            <button class="execute-btn" onclick="executePrivateData()">Execute</button>
+            
+            <div id="private-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Refresh Token API -->
+      <div class="accordion-item">
+        <div class="accordion-header post" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method post">POST</span>
+            <span class="path">/api/auth/refresh</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Refresh access token using refresh token from cookies.</p>
+            
+            <button class="execute-btn" onclick="executeRefresh()">Execute</button>
+            
+            <div id="refresh-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logout API -->
+      <div class="accordion-item">
+        <div class="accordion-header post" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method post">POST</span>
+            <span class="path">/api/auth/logout</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Logout user and clear authentication cookies.</p>
+            
+            <button class="execute-btn" onclick="executeLogout()">Execute</button>
+            
+            <div id="logout-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Socket.IO APIs Tab -->
+    <div id="socket-tab" class="tab-content">
+      <div class="token-section">
+        <h2>Socket.IO Connection</h2>
+        <div id="socketStatus" class="socket-status disconnected">Disconnected</div>
+        <button class="execute-btn" onclick="connectSocket()" id="connectBtn">Connect with Token</button>
+        <button class="execute-btn" onclick="disconnectSocket()" id="disconnectBtn" style="display: none;">Disconnect</button>
+      </div>
+
+      <!-- List UG Courses -->
+      <div class="accordion-item">
+        <div class="accordion-header get" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method get">SOCKET</span>
+            <span class="path">ugCourseService → list</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">List all UG courses with pagination and search (Public access).</p>
+            
+            <div class="form-group">
+              <label>Search Query</label>
+              <input type="text" id="socket-course-query" placeholder="Search courses..." />
+            </div>
+            
+            <div class="form-group">
+              <label>Page</label>
+              <input type="number" id="socket-course-page" value="1" />
+            </div>
+            
+            <div class="form-group">
+              <label>Limit</label>
+              <input type="number" id="socket-course-limit" value="10" />
+            </div>
+            
+            <button class="execute-btn" onclick="executeSocketCourseList()" id="courseListBtn" disabled>Execute</button>
+            
+            <div id="socket-course-list-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create UG Course -->
+      <div class="accordion-item">
+        <div class="accordion-header post" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method post">SOCKET</span>
+            <span class="path">ugCourseService → create</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Create a new UG course (Private access - User role required).</p>
+            
+            <div class="form-group">
+              <label>Course Name</label>
+              <input type="text" id="socket-course-name" placeholder="Computer Science" />
+            </div>
+            
+            <div class="form-group">
+              <label>Course Code</label>
+              <input type="text" id="socket-course-code" placeholder="CS101" />
+            </div>
+            
+            <div class="form-group">
+              <label>Description</label>
+              <textarea id="socket-course-description" rows="3" placeholder="Course description..."></textarea>
+            </div>
+            
+            <button class="execute-btn" onclick="executeSocketCourseCreate()" id="courseCreateBtn" disabled>Execute</button>
+            
+            <div id="socket-course-create-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Update User -->
+      <div class="accordion-item">
+        <div class="accordion-header post" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method post">SOCKET</span>
+            <span class="path">userService → update</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Update user details (Private access - User role required).</p>
+            
+            <div class="form-group">
+              <label>User ID</label>
+              <input type="text" id="socket-user-id" placeholder="User MongoDB ID" />
+            </div>
+            
+            <div class="form-group">
+              <label>First Name</label>
+              <input type="text" id="socket-user-firstname" placeholder="John" />
+            </div>
+            
+            <div class="form-group">
+              <label>Last Name</label>
+              <input type="text" id="socket-user-lastname" placeholder="Doe" />
+            </div>
+            
+            <button class="execute-btn" onclick="executeSocketUserUpdate()" id="userUpdateBtn" disabled>Execute</button>
+            
+            <div id="socket-user-update-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Socket Request -->
+      <div class="accordion-item">
+        <div class="accordion-header post" onclick="toggleAccordion(this)">
+          <div>
+            <span class="method post">SOCKET</span>
+            <span class="path">Custom Request</span>
+          </div>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="accordion-body">
+            <p class="description">Send a custom Socket.IO request with type-action pattern.</p>
+            
+            <div class="form-group">
+              <label>Service Type</label>
+              <input type="text" id="socket-custom-type" placeholder="ugCourseService" />
+            </div>
+            
+            <div class="form-group">
+              <label>Action</label>
+              <input type="text" id="socket-custom-action" placeholder="list" />
+            </div>
+            
+            <div class="form-group">
+              <label>Payload (JSON)</label>
+              <textarea id="socket-custom-payload" rows="5" placeholder='{"query": "", "page": "1", "limit": "10"}'></textarea>
+            </div>
+            
+            <button class="execute-btn" onclick="executeSocketCustom()" id="socketCustomBtn" disabled>Execute</button>
+            
+            <div id="socket-custom-response" class="response-section" style="display: none;">
+              <h4>Response</h4>
+              <pre></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8000';
+    let socket = null;
+    let currentToken = localStorage.getItem('authToken') || '';
+
+    // Initialize token on load
+    window.onload = function() {
+      if (currentToken) {
+        document.getElementById('globalToken').value = currentToken;
+        updateTokenStatus(true);
+      }
+    };
+
+    // Tab switching
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tab + '-tab').classList.add('active');
+    }
+
+    // Accordion toggle
+    function toggleAccordion(header) {
+      const content = header.nextElementSibling;
+      const isActive = header.classList.contains('active');
+      
+      // Close all accordions
+      document.querySelectorAll('.accordion-header').forEach(h => h.classList.remove('active'));
+      document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('active'));
+      
+      // Open clicked accordion if it wasn't active
+      if (!isActive) {
+        header.classList.add('active');
+        content.classList.add('active');
+      }
+    }
+
+    // Token management
+    function saveToken() {
+      const token = document.getElementById('globalToken').value.trim();
+      if (token) {
+        currentToken = token;
+        localStorage.setItem('authToken', token);
+        updateTokenStatus(true);
+      } else {
+        alert('Please enter a token');
+      }
+    }
+
+    function clearToken() {
+      currentToken = '';
+      localStorage.removeItem('authToken');
+      document.getElementById('globalToken').value = '';
+      updateTokenStatus(false);
+    }
+
+    function updateTokenStatus(active) {
+      const statusEl = document.getElementById('tokenStatus');
+      if (active) {
+        statusEl.textContent = 'Token active';
+        statusEl.className = 'token-status active';
+      } else {
+        statusEl.textContent = 'No token set';
+        statusEl.className = 'token-status inactive';
+      }
+    }
+
+    // REST API functions
+    async function makeRequest(url, options = {}) {
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
+          ...options.headers
+        };
+
+        if (currentToken && options.useAuth !== false) {
+          headers['Authorization'] = `Bearer ${currentToken}`;
+        }
+
+        const response = await fetch(API_BASE + url, {
+          ...options,
+          headers,
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+        return { status: response.status, data };
+      } catch (error) {
+        return { status: 500, data: { error: error.message } };
+      }
+    }
+
+    function showResponse(elementId, response) {
+      const responseEl = document.getElementById(elementId);
+      responseEl.style.display = 'block';
+      responseEl.querySelector('pre').textContent = JSON.stringify(response, null, 2);
+    }
+
+    async function executeRegister() {
+      const name = document.getElementById('register-name').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      const role = document.getElementById('register-role').value;
+
+      const response = await makeRequest('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password, role }),
+        useAuth: false
+      });
+
+      showResponse('register-response', response);
+
+      if (response.data.data?.accessToken) {
+        document.getElementById('globalToken').value = response.data.data.accessToken;
+        saveToken();
+      }
+    }
+
+    async function executeLogin() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      const response = await makeRequest('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+        useAuth: false
+      });
+
+      showResponse('login-response', response);
+
+      if (response.data.data?.accessToken) {
+        document.getElementById('globalToken').value = response.data.data.accessToken;
+        saveToken();
+      }
+    }
+
+    async function executeGuestToken() {
+      const response = await makeRequest('/api/auth/guest-token', { useAuth: false });
+      showResponse('guest-response', response);
+
+      if (response.data.data?.guestToken) {
+        document.getElementById('globalToken').value = response.data.data.guestToken;
+        saveToken();
+      }
+    }
+
+    async function executePublicInfo() {
+      const response = await makeRequest('/api/public/info', { useAuth: false });
+      showResponse('public-response', response);
+    }
+
+    async function executePrivateData() {
+      const response = await makeRequest('/api/private/data');
+      showResponse('private-response', response);
+    }
+
+    async function executeRefresh() {
+      const response = await makeRequest('/api/auth/refresh', { method: 'POST' });
+      showResponse('refresh-response', response);
+
+      if (response.data.data?.accessToken) {
+        document.getElementById('globalToken').value = response.data.data.accessToken;
+        saveToken();
+      }
+    }
+
+    async function executeLogout() {
+      const response = await makeRequest('/api/auth/logout', { method: 'POST' });
+      showResponse('logout-response', response);
+    }
+
+    // Socket.IO functions
+    function connectSocket() {
+      if (!currentToken) {
+        alert('Please set an access token first');
+        return;
+      }
+
+      socket = io(API_BASE, {
+        auth: { token: currentToken }
+      });
+
+      socket.on('connect', () => {
+        document.getElementById('socketStatus').textContent = 'Connected';
+        document.getElementById('socketStatus').className = 'socket-status connected';
+        document.getElementById('connectBtn').style.display = 'none';
+        document.getElementById('disconnectBtn').style.display = 'inline-block';
+        
+        // Enable all socket buttons
+        document.querySelectorAll('#socket-tab button.execute-btn').forEach(btn => {
+          if (btn.id !== 'connectBtn' && btn.id !== 'disconnectBtn') {
+            btn.disabled = false;
+          }
+        });
+      });
+
+      socket.on('connect_error', (error) => {
+        document.getElementById('socketStatus').textContent = `Connection Error: ${error.message}`;
+        document.getElementById('socketStatus').className = 'socket-status disconnected';
+      });
+
+      socket.on('disconnect', () => {
+        document.getElementById('socketStatus').textContent = 'Disconnected';
+        document.getElementById('socketStatus').className = 'socket-status disconnected';
+        document.getElementById('connectBtn').style.display = 'inline-block';
+        document.getElementById('disconnectBtn').style.display = 'none';
+        
+        // Disable all socket buttons
+        document.querySelectorAll('#socket-tab button.execute-btn').forEach(btn => {
+          if (btn.id !== 'connectBtn' && btn.id !== 'disconnectBtn') {
+            btn.disabled = true;
+          }
+        });
+      });
+    }
+
+    function disconnectSocket() {
+      if (socket) {
+        socket.disconnect();
+      }
+    }
+
+    function executeSocketCourseList() {
+      const request = {
+        type: 'ugCourseService',
+        action: 'list',
+        payload: {
+          query: document.getElementById('socket-course-query').value,
+          page: document.getElementById('socket-course-page').value,
+          limit: document.getElementById('socket-course-limit').value
+        }
+      };
+
+      socket.emit('request', request, (response) => {
+        showResponse('socket-course-list-response', response);
+      });
+    }
+
+    function executeSocketCourseCreate() {
+      const request = {
+        type: 'ugCourseService',
+        action: 'create',
+        payload: {
+          name: document.getElementById('socket-course-name').value,
+          code: document.getElementById('socket-course-code').value,
+          description: document.getElementById('socket-course-description').value
+        }
+      };
+
+      socket.emit('request', request, (response) => {
+        showResponse('socket-course-create-response', response);
+      });
+    }
+
+    function executeSocketUserUpdate() {
+      const request = {
+        type: 'userService',
+        action: 'update',
+        payload: {
+          id: document.getElementById('socket-user-id').value,
+          first_name: document.getElementById('socket-user-firstname').value,
+          last_name: document.getElementById('socket-user-lastname').value
+        }
+      };
+
+      socket.emit('request', request, (response) => {
+        showResponse('socket-user-update-response', response);
+      });
+    }
+
+    function executeSocketCustom() {
+      try {
+        const type = document.getElementById('socket-custom-type').value;
+        const action = document.getElementById('socket-custom-action').value;
+        const payloadStr = document.getElementById('socket-custom-payload').value;
+        
+        const payload = payloadStr ? JSON.parse(payloadStr) : {};
+
+        const request = { type, action, payload };
+
+        socket.emit('request', request, (response) => {
+          showResponse('socket-custom-response', response);
+        });
+      } catch (error) {
+        alert('Invalid JSON in payload: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>
